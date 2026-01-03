@@ -19,7 +19,10 @@ This PEP proposes adding two new operators.
 * The "``None``-aware indexing" operator ``?[ ]`` ("maybe subscript")
 
 Both operators evaluate the left hand side, check if it is not ``None``
-and only then evaluate the full expression. They are roughly equal to::
+and only then evaluate the full expression. They are roughly equivalent
+to:
+
+.. code-block:: python
 
     # a.b?.c
     _t1.c if ((_t1 := a.b) is not None) else None
@@ -80,7 +83,7 @@ modern programming languages have so called "``null``-aware" or
 ECMAScript (a.k.a. JavaScript) [#js]_, C# [#csharp]_, Dart [#dart]_,
 Swift [#swift]_, Kotlin [#kotlin]_, Ruby [#ruby]_, PHP [#php]_ and more.
 
-The general idea is to provide a access operators which can traverse
+The general idea is to provide access operators which can traverse
 ``null`` or ``None`` values without raising exceptions.
 
 Nested objects with ``optional`` attributes
@@ -89,7 +92,7 @@ Nested objects with ``optional`` attributes
 When writing Python code, it is common to encounter objects with ``optional``
 attributes. Accessing attributes, subscript or function calls can raise
 ``AttributeError`` or ``IndexError`` at runtime if the value is ``None``.
-Several common patterns have developed to ensure those operators are will
+Several common patterns have developed to ensure these operations will
 not raise. The goal for ``?.`` and ``?[ ]`` is to make reading and writing
 these expressions much simpler while being predictable and doing the
 correct things intuitively.
@@ -171,11 +174,11 @@ Writing it like this is correct but, especially for deeply nested
 object hierarchies, difficult to read and easy to get wrong.
 
 Alternative approaches include wrapping the whole expression with
-a try-except block. While this would also archive the desired
+a try-except block. While this would also achieve the desired
 output, it as well has the potential to introduce errors which
-might get unnoticed. E.g. if the ``Line.department`` gets deprecated,
-in the process making it ``optional`` and always return ``None``, the
-function would still succeed, even though the input changed significantly.
+might get unnoticed. E.g. if the ``Line.department`` attribute gets deprecated, in the process making it ``optional`` and always return
+``None``, the function would still succeed, even though the input changed
+significantly.
 
 .. code-block:: python
 
@@ -186,7 +189,7 @@ function would still succeed, even though the input changed significantly.
             return None
 
 Another approach would be to use a ``match`` statement instead. This
-will work fine but is easy to get wrong as well. It's strongly
+will work fine but is easy to get wrong as well. It is strongly
 recommended to use keyword attributes as otherwise any change in
 ``__match_args__`` would cause the pattern match to fail.
 If any attribute names change, the match statement needs to be
@@ -225,8 +228,9 @@ To start, assume each attribute, subscript and function call is
         return sensor.machine.line.department.engineer.email[0]
 
 Now insert ``?`` after each ``optional`` subexpression. IDEs and most
-type checkers would be able to help with that since the data structure
-is strictly typed. *Spaces added for clarity only, though still valid*::
+type checkers would often be able to help with that especially if the
+data structure is strictly typed. *Spaces added for clarity only,
+though still valid*::
 
     def get_person_email(sensor: Sensor) -> str | None:
         return sensor.machine? .line? .department.engineer? .email? [0]
@@ -259,8 +263,8 @@ Parsing structured data
 
 The ``?.`` and ``?[ ]`` operators can also aid in the traversal of
 structured data, oftentimes coming from JSON and parsed as nested
-dicts and lists. It is worth noting though that they do not handle
-``missing`` attributes / data. For dictionaries a useful helper is
+dicts and lists. It is worth noting though that the operators do not
+handle ``missing`` attributes / data. For dictionaries a useful helper is
 the ``.get(key, default=None)`` method with a default. Depending on
 the specific use case, pattern matching might also be a viable
 alternative here.
@@ -408,7 +412,9 @@ access were used.
     _t.c() if ((_t := a.b) is not None) else None
 
     # a?.b?.c.d
-    _t2.c.d if ((_t1 := a) is not None) and ((_t2 := t1.b) is not None) else None
+    _t2.c.d if (
+        (_t2 := _t1.b if ((_t1 := a) is not None) else None) is not None
+    ) else None
 
 Short-circuiting
 ****************
@@ -501,7 +507,7 @@ AST changes
 Two new AST nodes are added ``NoneAwareAttribute`` and ``NoneAwareSubscript``.
 They are the counterparts to the existing ``Attribute`` and ``Subscript``
 nodes. Notably there is no ``expr_context`` attribute because the new nodes
-do not support assignments itself and thus the context will always be
+do not support assignments themselves and thus the context will always be
 ``Load``.
 
 ::
@@ -539,7 +545,7 @@ Multiline formatting
 
 Using two separate tokens to express ``?.`` and ``?[`` allows developers
 to insert a space or line break as needed. For multiline expressions it
-allows that ``?`` is appended to the ``optional`` subexpression whereas
+enables that ``?`` is appended to the ``optional`` subexpression whereas
 ``.`` or ``[`` could be moved to the next line. This is indented merely
 as an option for developers. Everyone is free to choose a style that fits
 their needs, especially code formatters might prefer a style which
@@ -674,7 +680,7 @@ added for attribute and item access automatically.
 
 While this might be easier to write at first, it introduces new issues.
 When using explicit ``?.`` and ``?[ ]`` operators, the input space is well
-defined. Only ``a``, ``.c`` and ``d`` are expected to possibly be ``None``.
+defined. Only ``a``, ``.c`` and ``.d`` are expected to possibly be ``None``.
 If ``.b`` all of the sudden is also ``None``, it would still raise an
 ``AttributeError`` since it was unexpected. That would not happen for
 ``maybe``. This behavior is problematic since it can subtly hide real
@@ -696,8 +702,8 @@ operators introduced, a unary, postfix operator ``?`` was considered.
 
 While this might have made teaching the operators a bit easier, just one
 instead of two new operators, it may also be **too general**, in a sense
-that it can be combine with any other operator. It is not clear what the
-following expressions would mean::
+that it can be combine with any other operator. For example it is not
+clear what the following expressions would mean::
 
     >>> x? + 1
     >>> x? -= 1
@@ -728,7 +734,7 @@ There are a number of libraries which provide some kind of object
 traversal functions. The most popular likely being ``glom`` [#glom]_.
 Others include ``jmespath`` [#jmespath]_ and ``nonesafe`` [#nonesafe]_.
 The idea is usually to pass an object and the lookup attributes as
-string to a function which handles the rest.
+string to a function which handles the evaluation.
 
 .. code-block:: python
 
@@ -744,7 +750,7 @@ It was suggested to add a ``traverse`` or ``deepget`` function to the
 stdlib. While these libraries do work and have its use cases, especially
 ``glom`` provides an excellent interface to extract and combine multiple
 data points from deeply nested objects, they do also have some
-disadvantages. Passing the lookup attributes as string means that often
+disadvantages. Passing the lookup attributes as a string means that often
 times there are no more IDE suggestions. Type checking these expressions
 is also limited. Furthermore, normal function calls can not provide
 short-circuiting, so they would still need to be combined with assignment
@@ -839,11 +845,11 @@ either ``?.`` (or ``?:``). Using anything else would be unexpected.
 Defer ``None``-aware indexing operator
 --------------------------------------
 
-A point of discussion was the ``?[ ]`` operator. Some though it might be
+A point of discussion was the ``?[ ]`` operator. Some thought it might be
 missed to easily in an expression ``a.b?[c]``. To move the discussion
-forward, some suggested to defer the operator for later.
+forward, it was suggested to defer the operator for later.
 
-While it is often helpful to reduce the scope to move forward at all,
+Though it is often helpful to reduce the scope to move forward at all,
 the ``?[ ]`` operator is necessary to efficiently get items from
 ``optional`` objects. While for dictionary a suitable alternative is to
 use ``d?.get(key)``, for general objects developers would have needed
@@ -939,7 +945,7 @@ As shown in the `Motivation`_ section, the operators are not designed
 to handle arbitrary data, rather to make it easier to work with nested
 objects with ``optional`` attributes. If arbitrary data handling is the
 goal, other language concepts are likely better suited, like try-except,
-a match statement or different data traversal libraries from PyPI.
+a match statement or data traversal libraries from PyPI.
 
 See the `Exception-aware operators`_ section for more details why
 this was rejected.
@@ -947,7 +953,7 @@ this was rejected.
 Just use ...
 ------------
 
-A comment reply towards the proposal was to use an existing language
+A common reply towards the proposal was to use an existing language
 concept instead of introducing a syntax. A few alternatives have been
 proposed.
 
