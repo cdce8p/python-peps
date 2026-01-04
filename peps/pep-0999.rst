@@ -429,20 +429,43 @@ just because a ``?.`` or ``?[ ]`` is used prior.
 ::
 
     >>> a = None
-    >>> a?.b.c[0].some_function()
+    >>> print(a?.b.c[0].some_function())
     None
+
+The ``None``-aware access operators will only short-circuit expressions
+containing name, attribute access, subscript, their ``None``-aware
+counterparts and call expressions. As a rule of thumb, short-circuiting
+is broken once a (soft-) keyword is reached.
+
+::
+
+    >>> a = None
+    >>> print(a?.b.c)
+    None
+    >>> print(a?.b.c or "Hello")
+    'Hello'
+    >>> 2 in a?.b.c
+    Traceback (most recent call last):
+    File "<python-input>", line 1, in <module>
+        2 in a?.b.c
+    TypeError: argument of type 'NoneType' is not a container or iterable
+    >>> 2 in (a?.b.c or ())
+    False
 
 Grouping
 ********
 
-Using ``?.`` and ``?[ ]`` inside groups is possible. Any non-trivial group
-will be evaluate on its own, short-circuiting will only skip to the end of
-the the expression inside the group itself.
+Grouping is an implicit property of the `Short-circuiting`_ behavior.
+If a group contains a non short-circuiting expression, i.e. one that
+is not either a name, attribute access, subscript, their ``None``-aware
+counterparts or a call expression, the short-circuiting chain will be
+broken. The rule of thumb still applies: short-circuiting is broken once
+a (soft-) keyword is reached.
 
-::
-
-    # Trivial groups
-    (a?.b).c?.d == a?.b.c?.d
+In the example below the group contains a ``BoolOp`` (``or``) expression
+which breaks the short-circuiting chain into two: ``a.b?.c`` inside
+the group which is evaluated first and ``(...).e?.func()`` on the
+outside.
 
 ::
 
@@ -457,6 +480,15 @@ the the expression inside the group itself.
     # (...).e?.func()
     _t4.func() if ((_t4 := _t3.e) is not None) else None
 
+In contrast, the example below only consists of a name, one attribute
+access and two ``None``-aware attribute access expressions. As such the
+grouping does not break the short-circuiting chain. The brackets can
+safely be removed.
+
+::
+
+    # Trivial groups
+    (a?.b).c?.d == a?.b.c?.d
 
 Assignments
 ***********
@@ -693,6 +725,33 @@ a try-except block can be used instead.
 As the ``?.`` and ``?[ ]`` would allow developers to be more explicit in
 their intend, this suggestion is rejected.
 
+Remove short-circuiting
+-----------------------
+
+It was suggested to remove the `Short-circuiting`_ behavior completely
+because it might be too difficult to understand. Developers should
+instead change any subsequent attribute access or subscript to their
+``None``-aware variants.
+
+::
+
+    # before
+    a.b.optional?.c.d.e
+
+    # after
+    a.b.optional?.c?.d?.e
+
+The idea has some of the same challenges as `Add a maybe keyword`_.
+By forcing the use of ``?.`` or ``?[ ]`` for attributes which are
+``not-optional``, it will be difficult to know if the ``not-optional``
+attributes ``.c`` or ``.d`` suddenly started to return ``None`` as well.
+The ``AttributeError`` would have been silenced.
+
+Another issue especially for longer expressions is that **all**
+subsequent attribute access and subscript operators need to be changed
+as soon as just one attribute in a long chain is ``optional``. Missing
+just one can instantly cause a new ``AttributeError`` or ``TypeError``.
+
 ``?`` Unary Postfix operator
 ----------------------------
 
@@ -864,6 +923,41 @@ While adding ``list.get(key, default=None)`` as suggested in
 for lists and tuples and as such would be a valuable addition to the
 language itself, it doesn't remove the need for arbitrary objects which
 implement a custom ``__getitem__`` method.
+
+Limit scope of short-circuiting with grouping
+---------------------------------------------
+
+Some languages like JS [#js_short_circuiting]_ and C# [#csharp]_ limit the
+scope of the `Short-circuiting`_ via explicit grouping::
+
+    a = None
+    x = (a?.b).c
+    #   ^^^^^^
+
+In the example above short-circuiting would be limited to just ``a?.b``,
+thus with ``a = None`` the expression would raise an ``AttributeError``
+instead of setting ``x`` to ``None``.
+
+Even though other languages have implemented it that way, this kind of
+explicit grouping for short-circuiting does have its disadvantages.
+The ``None``-aware access operators are explicitly designed to return
+``None`` at some point. Directly limiting the scope of the
+short-circuiting behavior almost guarantees that the code will raise
+an ``AttributeError`` or ``TypeError`` at some point. Type checkers
+would also have to raise an error for trying to access an attribute
+or subscript on an ``optional`` variable again.
+
+As such breaking the short-circuiting chain does only make sense if a
+fallback value is provided at the same time. For example::
+
+    (a?.b.c or fallback).e.func()
+
+In case it is known that ``a`` will always be a not ``None`` value,
+and it is just still typed as optional, better options include adding
+an ``assert a is not None`` or if it is ever proposed a ``Not-None``
+assertion operator ``a!`` (out of scope for this PEP). Developers also
+always have the option of splitting the expression up again like they do
+today.
 
 
 Common objections
@@ -1092,8 +1186,10 @@ Footnotes
    (https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#optional-chaining)
 .. [#js] JavaScript: Optional chaining (?.)
    (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining)
+.. [#js_short_circuiting] JavaScript: Optional chaining (?.) - Short-circuiting
+   (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining#short-circuiting)
 .. [#csharp] C# Reference: Member access operators
-   (https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/member-access-operators)
+   (https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/member-access-operators#null-conditional-operators--and-)
 .. [#dart] Dart: Other operators
    (https://dart.dev/language/operators#other-operators)
 .. [#swift] Swift: Optional Chaining
