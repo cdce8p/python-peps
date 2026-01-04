@@ -91,7 +91,7 @@ Nested objects with ``optional`` attributes
 
 When writing Python code, it is common to encounter objects with ``optional``
 attributes. Accessing attributes, subscript or function calls can raise
-``AttributeError`` or ``IndexError`` at runtime if the value is ``None``.
+``AttributeError`` or ``TypeError`` at runtime if the value is ``None``.
 Several common patterns have developed to ensure these operations will
 not raise. The goal for ``?.`` and ``?[ ]`` is to make reading and writing
 these expressions much simpler while being predictable and doing the
@@ -185,7 +185,7 @@ significantly.
     def get_person_email(sensor: Sensor) -> str | None:
         try:
             return sensor.machine.line.department.engineer.emails[0]
-        except AttributeError, IndexError:
+        except AttributeError, TypeError:
             return None
 
 Another approach would be to use a ``match`` statement instead. This
@@ -687,7 +687,7 @@ If ``.b`` all of the sudden is also ``None``, it would still raise an
 issues. As the expression output can already be ``None`` the space of
 potential output didn't change and as such no error would appear.
 
-If it is the intend to catch all ``AttributeError`` and ``IndexError``,
+If it is the intend to catch all ``AttributeError`` and ``TypeError``,
 a try-except block can be used instead.
 
 As the ``?.`` and ``?[ ]`` would allow developers to be more explicit in
@@ -1002,7 +1002,7 @@ try-except:
     def get_person_email(sensor: Sensor) -> str | None:
         try:
             return sensor.machine.line.department.engineer.emails[0]
-        except AttributeError, IndexError:
+        except AttributeError, TypeError:
             return None
 
 While this will likely work, it does not provide nearly the same level
