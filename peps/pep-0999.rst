@@ -455,17 +455,24 @@ is broken once a (soft-) keyword is reached.
 Grouping
 ********
 
-Grouping is an implicit property of the `Short-circuiting`_ behavior.
-If a group contains a non short-circuiting expression, i.e. one that
-is not either a name, attribute access, subscript, their ``None``-aware
-counterparts or a call expression, the short-circuiting chain will be
-broken. The rule of thumb still applies: short-circuiting is broken once
-a (soft-) keyword is reached.
+Using ``?.`` and ``?[ ]`` inside groups is possible. Short-circuiting
+will be broken either by the rules laid out in the `Short-circuiting`_
+section or at the end of a group. For example the expression ``(a?.b).c``
+will raise an ``AttributeError`` on ``.c`` if ``a = None``. This is
+conceptually identical to extracting the group contents and storing the
+result in a temporary variable before substituting it back into the
+original expression.
 
-In the example below the group contains a ``BoolOp`` (``or``) expression
-which breaks the short-circuiting chain into two: ``a.b?.c`` inside
-the group which is evaluated first and ``(...).e?.func()`` on the
-outside.
+::
+
+    # (a?.b).c
+
+    _t = a?.b
+    _t.c
+
+Common use cases for ``None``-aware access operators in groups are
+boolean or conditional expressions which can provide a fallback value
+in case the first part evaluates to ``None``.
 
 ::
 
@@ -479,16 +486,6 @@ outside.
 
     # (...).e?.func()
     _t4.func() if ((_t4 := _t3.e) is not None) else None
-
-In contrast, the example below only consists of a name, one attribute
-access and two ``None``-aware attribute access expressions. As such the
-grouping does not break the short-circuiting chain. The brackets can
-safely be removed.
-
-::
-
-    # Trivial groups
-    (a?.b).c?.d == a?.b.c?.d
 
 Assignments
 ***********
@@ -540,7 +537,9 @@ Two new AST nodes are added ``NoneAwareAttribute`` and ``NoneAwareSubscript``.
 They are the counterparts to the existing ``Attribute`` and ``Subscript``
 nodes. Notably there is no ``expr_context`` attribute because the new nodes
 do not support assignments themselves and thus the context will always be
-``Load``.
+``Load``. Furthermore, an optional ``group`` attribute is added for all
+expression nodes. It is set to ``1`` if the expression is the topmost
+node in a group, ``0`` otherwise.
 
 ::
 
@@ -550,6 +549,9 @@ do not support assignments themselves and thus the context will always be
         ...
         | NoneAwareAttribute(expr value, identifier attr)
         | NoneAwareSubscript(expr value, expr slice)
+
+        attributes (int? group, int lineno, int col_offset,
+                    int? end_lineno, int? end_col_offset)
 
 Grammar changes
 ---------------
@@ -924,40 +926,36 @@ for lists and tuples and as such would be a valuable addition to the
 language itself, it doesn't remove the need for arbitrary objects which
 implement a custom ``__getitem__`` method.
 
-Limit scope of short-circuiting with grouping
----------------------------------------------
+Ignore groups for short-circuiting
+----------------------------------
 
-Some languages like JS [#js_short_circuiting]_ and C# [#csharp]_ limit the
-scope of the `Short-circuiting`_ via explicit grouping::
+An earlier version of this PEP suggested the short-circuiting
+behavior should be indifferent towards grouping. It was assumed that
+short-circuiting would be broken already for more complex group
+expressions like ``(a?.b or c).d`` by the behavior outline in the
+`Short-circuiting`_ section. While for simpler ones like ``(a?.b).c``
+the grouping was considered trivial and the expression would be equal to
+``a?.b.c``. The advantage being that developers would not have to
+look for groupings when evaluating simpler expressions. As long as
+any ``None``-aware access operator was used and the expression was not
+broken by a (soft-) keyword, it would return ``None`` instead of raising
+an ``AttributeError`` or ``TypeError``.
 
-    a = None
-    x = (a?.b).c
-    #   ^^^^^^
+This suggestion was rejected in favor of the specification outline in
+the `Grouping`_ section since it violates the substitution principle.
+An expression ``(a?.b).c`` should behave the same whether or not ``a?.b``
+is written inline inside a group or defined as a separate variable.
 
-In the example above short-circuiting would be limited to just ``a?.b``,
-thus with ``a = None`` the expression would raise an ``AttributeError``
-instead of setting ``x`` to ``None``.
+::
 
-Even though other languages have implemented it that way, this kind of
-explicit grouping for short-circuiting does have its disadvantages.
-The ``None``-aware access operators are explicitly designed to return
-``None`` at some point. Directly limiting the scope of the
-short-circuiting behavior almost guarantees that the code will raise
-an ``AttributeError`` or ``TypeError`` at some point. Type checkers
-would also have to raise an error for trying to access an attribute
-or subscript on an ``optional`` variable again.
+    (a?.b).c
 
-As such breaking the short-circuiting chain does only make sense if a
-fallback value is provided at the same time. For example::
+    _t = a?.b
+    _t.c
 
-    (a?.b.c or fallback).e.func()
-
-In case it is known that ``a`` will always be a not ``None`` value,
-and it is just still typed as optional, better options include adding
-an ``assert a is not None`` or if it is ever proposed a ``Not-None``
-assertion operator ``a!`` (out of scope for this PEP). Developers also
-always have the option of splitting the expression up again like they do
-today.
+Furthermore, defining the short-circuiting behavior that way would have
+been a deviation from the already established behavior in
+languages like JS [#js_short_circuiting]_ and C# [#csharp]_.
 
 
 Common objections
