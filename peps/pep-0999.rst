@@ -134,11 +134,22 @@ correct things intuitively.
 
 A simple function which will most likely work just fine. However, there
 are a few subtle issues. For one each condition only checks for truthiness.
-Would for example ``Machine`` overwrite ``__eq__`` to return ``False`` at
+Would for example ``Machine`` overwrite ``__bool__`` to return ``False`` at
 some point, the function would just return ``None``. This is problematic
 since ``None`` is a valid return value already. Thus this would not raise
 an exception in the caller and even type checkers would not be able to
 detect it. The solution here is to compare with ``None`` instead.
+
+.. note::
+
+    It is assumed that if ``Person.emails is not None``, it will
+    always contain at least one item. This is done in order to avoid
+    confusion around potential error cases. The goal for this PEP is to
+    make the ``[ ]`` operator safe for ``optional`` attributes which
+    could raise a ``TypeError``. It is not to simplify accessing
+    elements in a sequence of unknown length which could raise an
+    ``IndexError`` instead. See `Add list.get(key, default=None)`_ in
+    the deferred ideas section for that.
 
 .. code-block:: python
 
@@ -176,7 +187,8 @@ object hierarchies, difficult to read and easy to get wrong.
 Alternative approaches include wrapping the whole expression with
 a try-except block. While this would also achieve the desired
 output, it as well has the potential to introduce errors which
-might get unnoticed. E.g. if the ``Line.department`` attribute gets deprecated, in the process making it ``optional`` and always return
+might get unnoticed. E.g. if the ``Line.department`` attribute gets
+deprecated, in the process making it ``optional`` and always return
 ``None``, the function would still succeed, even though the input changed
 significantly.
 
@@ -193,7 +205,7 @@ will work fine but is easy to get wrong as well. It is strongly
 recommended to use keyword attributes as otherwise any change in
 ``__match_args__`` would cause the pattern match to fail.
 If any attribute names change, the match statement needs to be
-updated as well. IDEs can not reliably do that themselves since a
+updated as well. Even IDEs can not reliably do that themselves since a
 class pattern is not restricted to existing attributes and can instead
 match any possible name. For sequence patterns it is also necessary
 to remember the wildcard match. Lastly, using ``match`` is significantly
@@ -228,9 +240,8 @@ To start, assume each attribute, subscript and function call is
         return sensor.machine.line.department.engineer.email[0]
 
 Now insert ``?`` after each ``optional`` subexpression. IDEs and most
-type checkers would often be able to help with that especially if the
-data structure is strictly typed. *Spaces added for clarity only,
-though still valid*::
+type checkers will be able to help with identifying these. *Spaces added
+for clarity only, though still valid*::
 
     def get_person_email(sensor: Sensor) -> str | None:
         return sensor.machine? .line? .department.engineer? .email? [0]
@@ -337,7 +348,17 @@ Other common patterns
 A collection of additional patterns which could be improved with
 ``?.`` and ``?[ ]``. It is not the goal to list every foreseeable
 option but rather to help recognize these patterns which often
-hide in plain side. Attribute and function names have been shortened:
+hide in plain sight. Attribute and function names have been shortened.
+
+.. note::
+
+    Most patterns below are **not** fully identical. As mentioned
+    `earlier <Nested objects with optional attributes_>`_, it is common
+    to use boolean expressions to filter out ``None`` values. Other
+    falsy values, e.g. ``False``, ``""``, ``0``, ``[]``, ``{}`` or custom
+    objects which overwrite ``__bool__``, are filtered out too though.
+    If code relied on this property, the expression cannot necessarily
+    be replaced with ``?.`` or ``.[ ]``.
 
 ::
 
@@ -367,15 +388,16 @@ hide in plain side. Attribute and function names have been shortened:
     a.b and a.b[0].c and a.b[0].c.d and a.b[0].c.d[0].e
     a.b?[0].c?.d?[0].e
 
-    d: dict
-    d and key in d and d[key]
-    d?.get(key)
+    d1: dict | None
+    d1 and key in d1 and d1[key]
+    d1?.get(key)
 
-    key in d and d[key][other]
+    d2: dict
+    key in d2 and d2[key][other]
     d.get(key)?[other]
 
-    key in d and d[key].do_something()
-    d.get(key)?.do_something()
+    key in d2 and d2[key].do_something()
+    d2.get(key)?.do_something()
 
     (c := a.b) and c.startswith(key)
     a.b?.startswith(key)
@@ -455,13 +477,13 @@ is broken once a (soft-) keyword is reached.
 Grouping
 ********
 
-Using ``?.`` and ``?[ ]`` inside groups is possible. Short-circuiting
-will be broken either by the rules laid out in the `Short-circuiting`_
-section or at the end of a group. For example the expression ``(a?.b).c``
-will raise an ``AttributeError`` on ``.c`` if ``a = None``. This is
-conceptually identical to extracting the group contents and storing the
-result in a temporary variable before substituting it back into the
-original expression.
+Using ``?.`` and ``?[ ]`` inside groups is possible. In addition to the
+rules laid out in the `previous <Short-circuiting_>`_ section,
+short-circuiting will also be broken at the end of a group. For example
+the expression ``(a?.b).c`` will raise an ``AttributeError`` on ``.c``
+if ``a = None``. This is conceptually identical to extracting the group
+contents and storing the result in a temporary variable before
+substituting it back into the original expression.
 
 ::
 
@@ -693,7 +715,7 @@ would be raised under normal circumstances. Instead of testing for
 expression. Similar to nested try-except blocks.
 
 While this would technically work, it's not at all clear what the result
-should be if an error is caught. Furthermore this approach would hide
+should be if an error is caught. Furthermore, this approach would hide
 genuine issues like a misspelled attribute which would have raised an
 ``AttributeError``. There are also already established patterns to
 handle these kinds of errors in the form of ``getattr`` and
@@ -899,9 +921,14 @@ Some comments suggested to use existing syntax like ``->`` for the
 ``None``-aware access operators, e.g. ``a->b.c``.
 
 Though possible, the ``->`` operator is already used in Python for
-something completely different. Additionally, "``null``-aware" or
-"optional chaining" operators in other languages almost exclusively use
-either ``?.`` (or ``?:``). Using anything else would be unexpected.
+something completely different. Additionally, a majority of other
+languages which support "``null``-aware" or "optional chaining"
+operators use ``?.``. Some exceptions being Ruby [#ruby]_ with ``&.``
+or PHP [#php]_ with ``?->``. The ``?`` does not have an assigned
+meaning in Python just yet. As such it makes sense to adopt
+the most common spelling for the ``None``-aware access operators.
+Especially considering that it also works well with the "normal"
+``.`` and ``[ ]`` operators.
 
 Defer ``None``-aware indexing operator
 --------------------------------------
@@ -933,7 +960,7 @@ An earlier version of this PEP suggested the short-circuiting
 behavior should be indifferent towards grouping. It was assumed that
 short-circuiting would be broken already for more complex group
 expressions like ``(a?.b or c).d`` by the behavior outline in the
-`Short-circuiting`_ section. While for simpler ones like ``(a?.b).c``
+`Short-circuiting`_ section, while for simpler ones like ``(a?.b).c``
 the grouping was considered trivial and the expression would be equal to
 ``a?.b.c``. The advantage being that developers would not have to
 look for groupings when evaluating simpler expressions. As long as
@@ -984,7 +1011,7 @@ reading it again is far from simple.
 
 In contrast, ``?.`` and ``?[ ]`` leave the core of the expression mostly
 untouched. It is thus fairly strait forward to see what is happening.
-Furthermore it will be easier to write since one can start from the
+Furthermore, it will be easier to write since one can start from the
 normal attribute access and subscript operators and just insert ``?``
 as needed. The Python error messages for accessing a member or subscript
 of ``None`` can help here, similarly type checkers and IDEs will be
@@ -1140,7 +1167,7 @@ Some mentioned that ``None`` is not special enough to warrant dedicated
 operators.
 
 "``null``-aware" or "optional chaining" operators have been added to a
-number of other modern programming languages. Furthermore adding
+number of other modern programming languages. Furthermore, adding
 ``None``-aware access operators is something which was suggested numerous
 times since :pep:`505` was first proposed ten years ago.
 
@@ -1160,7 +1187,7 @@ While this is true, the use of ``?.`` and ``?[ ]`` for "null"- /
 ``None``-aware operators in other languages means that it would be
 difficult to us ``?`` for anything else.
 
-Furthermore it is common for developers to use / be fluent in multiple
+Furthermore, it is common for developers to use / be fluent in multiple
 programming languages. It is up the Python language specification to
 provide a meaning for these operators which roughly matches those in
 other languages while still respecting the norms in Python itself.
