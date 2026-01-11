@@ -25,10 +25,10 @@ to:
 .. code-block:: python
 
     # a.b?.c
-    _t1.c if ((_t1 := a.b) is not None) else None
+    _t.c if ((_t := a.b) is not None) else None
 
     # a.b?[c]
-    _t1[c] if ((_t1 := a.b) is not None) else None
+    _t[c] if ((_t := a.b) is not None) else None
 
 See the `Specification`_ section for more details.
 
@@ -416,13 +416,22 @@ The maybe-dot and maybe-subscript operators
 -------------------------------------------
 
 Two new operators are added, ``?.`` ("maybe-dot") and ``?[ ]``
-("maybe subscript"). Both operators first evaluate the left hand side.
-The result is stored in a temporary variable, so that the expression is not
-evaluated again. It is checked if the result is not ``None`` and only then
-is the remaining expression evaluated as if normal attribute or subscript
-access were used.
+("maybe subscript"). Both operators first evaluate the left hand side
+(the ``base``). The result is stored in a temporary variable, so that
+the expression is not evaluated again. It is checked if the result is
+not ``None`` and only then is the remaining expression (the ``tail``)
+evaluated as if normal attribute or subscript access were used.
 
-::
+.. code-block:: python
+
+    # base?.tail
+    (_t.tail) if ((_t := base) is not None) else None
+
+The ``base`` can be replace with any number of expressions, including
+`Groups`_ while the ``tail`` is limited to attribute access, subscript,
+their ``None``-aware variants and call expressions.
+
+.. code-block:: python
 
     # a.b?.c
     _t.c if ((_t := a.b) is not None) else None
@@ -441,12 +450,13 @@ access were used.
 Short-circuiting
 ****************
 
-If the left hand side for ``?.`` or ``?[ ]`` evaluate to ``None``, the
-remaining expression is skipped and the result will be set to ``None``
-instead. The ``AttributeError`` for accessing a member of ``None`` or
-``TypeError`` for trying to subscribe to ``None`` are omitted. It is
-therefore not necessary to change ``.`` or ``[ ]`` on the right hand side
-just because a ``?.`` or ``?[ ]`` is used prior.
+If the left hand side (the ``base``) for ``?.`` or ``?[ ]`` evaluate to
+``None``, the remaining expression (the ``tail``) is skipped and the
+result will be set to ``None`` instead. The ``AttributeError`` for
+accessing a member of ``None`` or ``TypeError`` for trying to subscribe
+to ``None`` are omitted. It is therefore not necessary to change ``.``
+or ``[ ]`` on the right hand side just because a ``?.`` or ``?[ ]`` is
+used prior.
 
 ::
 
