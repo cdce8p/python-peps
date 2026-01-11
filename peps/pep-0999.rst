@@ -984,6 +984,46 @@ Furthermore, defining the short-circuiting behavior that way would have
 been a deviation from the already established behavior in
 languages like JS [#js_short_circuiting]_ and C# [#csharp]_.
 
+Change ``primary`` rule to be right-recursive
+---------------------------------------------
+
+The ``primary`` grammar rule as it is defined [#py_grammar]_ is
+left-recursive. This can make it difficult to reason about especially
+with regards to the `Short-circuiting`_ and `Grouping`_ behavior.
+
+It was therefore proposed to make the ``None``-aware access operators
+part of the ``primary`` rule right-recursive instead. The expression
+``a.b?.c[0].func()`` would then roughly be parsed as:
+
+.. code-block:: python
+
+    NoneAwareAttribute(
+        base=Attribute(
+            expr=Name(identifier="a"),
+            identifier="b"
+        )
+        tail=[
+            AttributeTail(identifier="c"),
+            SubscriptTail(slice=Constant(value=0)),
+            AttributeTail(identifier="func")
+            CallTail(args=[], keyword=[])
+        ]
+    )
+
+While this approach would clearly define which parts of an expression
+would be short-circuited, it has several drawbacks. To implement it at
+least three additional AST nodes have to be added ``AttributeTail``,
+``SubscriptTail`` and ``CallTail``. As these are right-recursive now,
+reusing code from the ``Attribute``, ``Subscript`` and ``Call`` nodes
+might prove difficult. Not to mention that the ``NoneAware*`` nodes
+would contain parts that are both left- and right-recursive which
+would be confusing.
+
+In comparison the proposed `Grammar changes`_ are intentional kept to
+a minimum. The ``None``-aware access operators should behave more or
+less like a drop-in replacement for ``.`` and ``[ ]``, only with the
+behavior outline in this PEP.
+
 
 Common objections
 =================
@@ -1068,6 +1108,38 @@ a match statement or data traversal libraries from PyPI.
 
 See the `Exception-aware operators`_ section for more details why
 this was rejected.
+
+Short circuiting is difficult to understand
+-------------------------------------------
+
+Some have pointed the `Short-circuiting`_ behavior might be difficult
+to understand and suggested to remove it in favor of a simplified
+proposal.
+
+It is true that using short-circuiting that way is new to Python and
+as such unknown. That closest analogs would be boolean expressions like
+``a or b``, ``a and b`` which do also short-circuit the expression if
+the first value is truthy or falsy respectively. However, while
+the details are complex, the behavior itself is rather intuitive.
+To understand it, it is often enough to know that once a subexpression
+for an ``optional`` value evaluates to ``None``, the result will be
+``None`` as well. Any subsequent attribute access, subscript or call
+will be skipped. In the example below, if ``a.b`` is ``None``, so will
+be ``a.b?.c``:
+
+::
+
+    a.b?.c
+    ^^^
+
+On a technical level, removing short-circuiting would make it difficult
+to detect if ``not-optional`` attributes suddenly started to return
+``None`` as well. See `Remove short-circuiting`_ in the rejected ideas
+section for more details on that.
+
+Lastly, the short-circuiting behavior as proposed is identical to that
+of other languages like TS [#ts]_, JS [#js_short_circuiting]_ and
+C# [#csharp]_.
 
 Just use ...
 ------------
@@ -1233,6 +1305,8 @@ Footnotes
    (https://pypi.org/project/nonesafe/)
 .. [#pymaybe] PyPI: pymaybe
    (https://pypi.org/project/pymaybe/)
+.. [#py_grammar] Python documentation: Full Grammar specification
+   (https://docs.python.org/3/reference/grammar.html)
 
 
 Copyright
