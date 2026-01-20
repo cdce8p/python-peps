@@ -72,7 +72,7 @@ First officially proposed ten years ago in (the now deferred) :pep:`505`
 the idea to add ``None``-aware access operators has been along for
 some time now, discussed at length in numerous threads, most recently
 in [#discuss_revisit_505]_ and [#discuss_safe_navigation_op]_. This PEP
-aims to capture the current state of discussion and propose a specification
+aims to capture the current state of discussion and proposes a specification
 for addition to the Python language. In contrast to :pep:`505`, it will
 only focus on the two access operators. See the `Deferred Ideas`_ section
 for more details.
@@ -677,9 +677,10 @@ Coalesce ``??`` and coalesce assignment operator ``??=``
 --------------------------------------------------------
 
 :pep:`505` also suggested the addition of a ``None`` coalescing operator
-``??`` and a coalesce assignment operator ``??=``. While pursuing these
-ideas further would make sense, this PEP focuses just on the
-``None``-aware access operators.
+``??`` and a coalesce assignment operator ``??=``. As the ``None``-aware
+access operators have their own use cases, the coalescing operators were
+moved into a separate document, see PEP-XXX. Both proposals can be
+adopted independently of one another.
 
 ``None``-aware function calls
 -----------------------------
@@ -707,8 +708,9 @@ It was suggested to add a ``.get(key, default=None)`` method to ``list``
 and ``tuple`` objects, similar to the existing ``dict.get`` method. This
 could further make parsing of structured data easier since it would no
 longer be necessary to check if a ``list`` or ``tuple`` is long enough
-before trying to access the n-th element. While potentially useful,
-the idea is out of the scope of this PEP.
+before trying to access the n-th element avoiding a possible
+``IndexError``. While potentially useful, the idea is out of the scope
+of this PEP.
 
 
 Rejected Ideas
