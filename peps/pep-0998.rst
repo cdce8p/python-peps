@@ -25,6 +25,8 @@ checks if it is ``not None`` and returns the result. If the value is
 The coalescing assignment operator will only assign the right hand side
 if the left hand side evaluates to ``None``.
 
+They are roughly equivalent to:
+
 .. code-block:: python
 
     # a ?? b
@@ -180,10 +182,9 @@ The ``None`` coalescing operator
 --------------------------------
 
 The ``??`` operator is added. It first evaluates the left hand side.
-The result is stored in a temporary variable, so that the expression
-is not evaluated again. If the value is ``not None``, it is returned.
-If it is ``None``, the right hand side expression is evaluated and
-returned instead.
+The result is cached, so that the expression is not evaluated again.
+If the value is ``not None``, it is returned. If it is ``None``, the
+right hand side expression is evaluated and returned instead.
 
 .. code-block:: python
 
