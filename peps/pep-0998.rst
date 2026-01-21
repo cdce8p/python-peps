@@ -126,7 +126,7 @@ Errors can occur though if the variable being checked can be falsy for
 values other then ``None``, too. Common ones include ``0``, ``""``,
 ``[]``, ``{}``, ``()`` or custom objects which overwrite ``__bool__``.
 
-The "``None`` coalescing" operator can bridge that gab by adding an
+The "``None`` coalescing" operator can bridge this gab by adding an
 alternative to ``or`` which explicitly checks only for ``None`` values.
 Adding ``??`` can keep the expression concise while clearly
 communicating the intend:
@@ -324,11 +324,10 @@ Deferred Ideas
 -------------------------------
 
 :pep:`505` also suggest the addition of the ``None``-aware access
-operators ``?.`` and ``?[ ]``. As the "``None`` coalescing" and
-"coalescing assignment" operators have their own use cases, the
-``None``-aware access operators were moved into a separate
-document, see PEP-XXX. Both proposals can be adopted independently
-of one another.
+operators ``?.`` and ``?[ ]``. As the coalescing operators have their
+own use cases, the ``None``-aware access operators were moved into a
+separate document, see PEP-XXX. Both proposals can be adopted
+independently of one another.
 
 
 Rejected Ideas
@@ -350,7 +349,7 @@ in spoken and written language and as such immediately obvious to the
 reader. Not to mention they are also quite short with just two and three
 characters.
 
-In comparison and new (soft-) keyword would likely not enjoy the same
+In comparison a new (soft-) keyword would likely not enjoy the same
 benefits. There is no short established name for it, so while ideas
 like ``otherwise`` could be added, they do not convey an inherit
 meaning and therefore do not provide an immediate benefit. In contrast,
@@ -400,9 +399,9 @@ using the coalescing operators. To summarize them again:
 
 - They help avoid repeating the variable expression or having to
   introduce a temporary variable.
-- Clear control flow, no more ``if ... is None else ...`` and the
-  inverse ``if ... is not None else ...`` in the same code blocks.
-- Avoids the often (mis-)used ``or`` to provide fallback values
+- Clear control flow, no more ``if ... is not None else ...`` and the
+  inverse ``if ... is None else ...`` in the same code blocks.
+- Avoids the often (mis-) used ``or`` to provide fallback values
   just for ``None``.
 - More concise while also being more explicit.
 
@@ -441,12 +440,6 @@ In Python ``None`` is frequently used to indicate the absence of
 something better or a missing value. As such it is common to look
 specifically for ``None`` values, for example, to provide a default
 or fallback value.
-
-
-Open Issues
-===========
-
-.. [Any points that are still being decided/discussed.]
 
 
 Footnotes
