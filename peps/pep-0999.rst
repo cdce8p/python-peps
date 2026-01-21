@@ -18,7 +18,7 @@ This PEP proposes adding two new operators.
 * The "``None``-aware attribute access" operator ``?.`` ("maybe dot")
 * The "``None``-aware indexing" operator ``?[ ]`` ("maybe subscript")
 
-Both operators evaluate the left hand side, check if it is not ``None``
+Both operators evaluate the left hand side, check if it is ``not None``
 and only then evaluate the full expression. They are roughly equivalent
 to:
 
@@ -77,14 +77,14 @@ for addition to the Python language. In contrast to :pep:`505`, it will
 only focus on the two access operators. See the `Deferred Ideas`_ section
 for more details.
 
-``None`` aware access operators are not a new invention. Several other
+``None``-aware access operators are not a new invention. Several other
 modern programming languages have so called "``null``-aware" or
 "optional chaining" operators, including TypeScript [#ts]_,
 ECMAScript (a.k.a. JavaScript) [#js]_, C# [#csharp]_, Dart [#dart]_,
 Swift [#swift]_, Kotlin [#kotlin]_, Ruby [#ruby]_, PHP [#php]_ and more.
 
 The general idea is to provide access operators which can traverse
-``null`` or ``None`` values without raising exceptions.
+``None`` values without raising exceptions.
 
 Nested objects with ``optional`` attributes
 -------------------------------------------
@@ -133,7 +133,7 @@ correct things intuitively.
         return None
 
 A simple function which will most likely work just fine. However, there
-are a few subtle issues. For one each condition only checks for truthiness.
+are a few subtle issues. For one, each condition only checks for truthiness.
 Would for example ``Machine`` overwrite ``__bool__`` to return ``False`` at
 some point, the function would just return ``None``. This is problematic
 since ``None`` is a valid return value already. Thus this would not raise
@@ -208,7 +208,7 @@ If any attribute names change, the match statement needs to be
 updated as well. Even IDEs can not reliably do that themselves since a
 class pattern is not restricted to existing attributes and can instead
 match any possible name. For sequence patterns it is also necessary
-to remember the wildcard match. Lastly, using ``match`` is significantly
+to remember the wildcard pattern. Lastly, using ``match`` is significantly
 slower because for each class pattern an ``isinstance`` check is performed
 first. This could be somewhat mitigated by using ``object(...)`` instead,
 though reading the pattern would be considerably more difficult.
@@ -347,7 +347,7 @@ Other common patterns
 
 A collection of additional patterns which could be improved with
 ``?.`` and ``?[ ]``. It is not the goal to list every foreseeable
-option but rather to help recognize these patterns which often
+use case but rather to help recognize these patterns which often
 hide in plain sight. Attribute and function names have been shortened.
 
 .. note::
@@ -394,7 +394,7 @@ hide in plain sight. Attribute and function names have been shortened.
 
     d2: dict
     key in d2 and d2[key][other]
-    d.get(key)?[other]
+    d2.get(key)?[other]
 
     key in d2 and d2[key].do_something()
     d2.get(key)?.do_something()
@@ -417,10 +417,10 @@ The maybe-dot and maybe-subscript operators
 
 Two new operators are added, ``?.`` ("maybe-dot") and ``?[ ]``
 ("maybe subscript"). Both operators first evaluate the left hand side
-(the ``base``). The result is stored in a temporary variable, so that
-the expression is not evaluated again. It is checked if the result is
-not ``None`` and only then is the remaining expression (the ``tail``)
-evaluated as if normal attribute or subscript access were used.
+(the ``base``). The result is cached, so that the expression is not
+evaluated again. It is checked if the result is not ``None`` and only
+then is the remaining expression (the ``tail``) evaluated as if normal
+attribute or subscript access were used.
 
 .. code-block:: python
 
@@ -450,13 +450,13 @@ their ``None``-aware variants and call expressions.
 Short-circuiting
 ****************
 
-If the left hand side (the ``base``) for ``?.`` or ``?[ ]`` evaluate to
+If the left hand side (the ``base``) for ``?.`` or ``?[ ]`` evaluates to
 ``None``, the remaining expression (the ``tail``) is skipped and the
 result will be set to ``None`` instead. The ``AttributeError`` for
 accessing a member of ``None`` or ``TypeError`` for trying to subscribe
-to ``None`` are omitted. It is therefore not necessary to change ``.``
-or ``[ ]`` on the right hand side just because a ``?.`` or ``?[ ]`` is
-used prior.
+to ``None`` are omitted. It is therefore not necessary to change
+subsequent ``.`` or ``[ ]`` on the right hand side just because a
+``?.`` or ``?[ ]`` is used prior.
 
 ::
 
@@ -676,8 +676,8 @@ Deferred Ideas
 Coalesce ``??`` and coalesce assignment operator ``??=``
 --------------------------------------------------------
 
-:pep:`505` also suggested the addition of a ``None`` coalescing operator
-``??`` and a coalesce assignment operator ``??=``. As the ``None``-aware
+:pep:`505` also suggested the addition of a "``None`` coalescing" operator
+``??`` and a "coalescing assignment" operator ``??=``. As the ``None``-aware
 access operators have their own use cases, the coalescing operators were
 moved into a separate document, see PEP-XXX. Both proposals can be
 adopted independently of one another.
@@ -710,7 +710,7 @@ could further make parsing of structured data easier since it would no
 longer be necessary to check if a ``list`` or ``tuple`` is long enough
 before trying to access the n-th element avoiding a possible
 ``IndexError``. While potentially useful, the idea is out of the scope
-of this PEP.
+for this PEP.
 
 
 Rejected Ideas
@@ -744,7 +744,7 @@ there are used. If multiple attributes in an expression can return ``None``,
 it might be necessary to add them multiple times ``a?.b.c?[0].d?.e()``.
 It was suggested to instead add a new soft-keyword ``maybe`` to prefix
 the expression: ``maybe a.b.c[0].d.e()``. A ``None`` check would then be
-added for attribute and item access automatically.
+added for each attribute and item access automatically.
 
 While this might be easier to write at first, it introduces new issues.
 When using explicit ``?.`` and ``?[ ]`` operators, the input space is well
@@ -1098,9 +1098,9 @@ A lot of the discussion centered around the interpretation of the
 i.e. perform ``is not None`` checks, or also work for ``missing``
 attributes, i.e. do ``getattr(obj, attr, None) is not None``.
 
-It was agreed that the operators should only handle ``optional``
-attributes, see the `Exception-aware operators`_ section section
-for more details why the latter interpretation was rejected.
+It was agreed that the ``None``-aware operators should only handle
+``optional`` attributes, see the `Exception-aware operators`_ section
+section for more details why the latter interpretation was rejected.
 
 Similar to `Easy to get ?. wrong`_ the discussion created a lot of
 confusion what the agreed upon interpretation should be. This will also
@@ -1191,8 +1191,8 @@ While the match statement has been available in Python since 3.10,
 anecdotal evidence suggests that developers still prefer other
 alternatives for ``optional`` attributes, at least for simple,
 strait-forward expression. Pattern matching starts to become much more
-useful once multiple attributes or values on a same level need to be
-checked.
+useful once multiple attributes or values need to be checked at the
+same time.
 
 ... try ... except ...
 **********************
@@ -1275,13 +1275,6 @@ Furthermore, it is common for developers to use / be fluent in multiple
 programming languages. It is up the Python language specification to
 provide a meaning for these operators which roughly matches those in
 other languages while still respecting the norms in Python itself.
-
-
-Open Issues
-===========
-
-* Should ``None``-aware function calls be added to the proposal?
-  They are supported in JavaScript [#js]_.
 
 
 Footnotes
