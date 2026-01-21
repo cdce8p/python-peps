@@ -383,6 +383,18 @@ Furthermore, setting the precedence between ``or`` and conditional
 expressions matches other languages which have implemented the operator,
 like JS [#js_precedence]_ and C# [#csharp_precedence]_.
 
+Add ``??=`` as ``AugAssign``
+----------------------------
+
+:pep:`505` also suggested to add ``??=`` as an ``AugAssign`` node.
+
+So far ``AugAssign`` is only used for binary operators, as such including
+``??=`` which is a conditional assignment operator would be confusing.
+Furthermore, ``AugAssign`` statements always evaluate the left **and**
+right hand side, without any short-circuiting. This is a major
+difference compared to coalescing assignments.
+
+
 Common objections
 =================
 
