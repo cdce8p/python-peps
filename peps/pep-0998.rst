@@ -28,7 +28,7 @@ if the left hand side evaluates to ``None``.
 .. code-block:: python
 
     # a ?? b
-    _t if ((_t := a) is not None) else None
+    _t if ((_t := a) is not None) else b
 
     # a ??= b
     if a is None:
