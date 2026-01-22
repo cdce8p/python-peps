@@ -1,7 +1,7 @@
 PEP: 998
 Title: Coalescing operators
 Author: Marc Mueller
-Sponsor: TODO
+Sponsor: Guido van Rossum <guido@python.org>
 Discussions-To: Pending
 Status: Draft
 Type: Standards Track
