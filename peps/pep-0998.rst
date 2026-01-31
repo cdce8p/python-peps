@@ -125,7 +125,8 @@ Python will check for truthiness instead of comparing the value to
 ``None``. It frequently works fine as ``None`` evaluates to ``False``.
 Errors can occur though if the variable being checked can be falsy for
 values other then ``None``, too. Common ones include ``0``, ``""``,
-``[]``, ``{}``, ``()`` or custom objects which overwrite ``__bool__``.
+``()``, ``[]``, ``{}``, ``set()`` or custom objects which overwrite
+``__bool__``.
 
 The "``None`` coalescing" operator can bridge this gab by adding an
 alternative to ``or`` which explicitly checks only for ``None`` values.
@@ -226,7 +227,7 @@ A new ``??`` token is added, as well as a new ``coalesce`` rule. Every
 rule which previously referenced the ``disjunction`` rule is updated
 to refer to the ``coalesce`` rule instead.
 
-::
+.. code-block:: PEG
 
     coalesce:
         | disjunction ('??' disjunction)+
@@ -270,7 +271,7 @@ Grammar changes
 A new ``??=`` token is added. Additionally, the ``assignment`` rule
 is extended to include the coalesce assignment.
 
-::
+.. code-block:: PEG
 
     assignment:
         | NAME ':' expression ['=' annotated_rhs]
@@ -350,10 +351,10 @@ reader. Not to mention they are also quite short with just two and three
 characters.
 
 In comparison a new (soft-) keyword would likely not enjoy the same
-benefits. There is no short established name for it, so while ideas
+benefits. There is no established short name for it, so while ideas
 like ``otherwise`` could be added, they do not convey an inherit
 meaning and therefore do not provide an immediate benefit. In contrast,
-the ``??`` operator is well established in other major programming
+the ``??`` operator is well known in other major programming
 languages.
 
 Lastly, using a (soft-) keyword for the "coalescing assignment" operator
@@ -411,10 +412,13 @@ using the coalescing operators. To summarize them again:
 
 - They help avoid repeating the variable expression or having to
   introduce a temporary variable.
+
 - Clear control flow, no more ``if ... is not None else ...`` and the
   inverse ``if ... is None else ...`` in the same code blocks.
+
 - Avoids the often (mis-) used ``or`` to provide fallback values
   just for ``None``.
+
 - More concise while also being more explicit.
 
 Proliferation of ``None`` in code bases
