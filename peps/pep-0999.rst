@@ -39,7 +39,7 @@ An attribute or value is ``optional``
     In the context of this PEP an attribute or value is considered
     ``optional`` if it is always present but can be ``None``.
 
-    .. code-block:: python
+    .. code-block:: python-console
 
         >>> class A:
         ...     def __init__(self, val: int | None) -> None:
@@ -54,7 +54,7 @@ An attribute or value is ``missing``
     at all. For ``typing.TypedDict`` these would be ``typing.NotRequired``
     keys when they are not preset.
 
-    .. code-block:: python
+    .. code-block:: python-console
 
         >>> class A:
         ...     val: int | None
@@ -240,13 +240,17 @@ To start, assume each attribute, subscript and function call is
 
 Now insert ``?`` after each ``optional`` subexpression. IDEs and most
 type checkers will be able to help with identifying these. *Spaces added
-for clarity only, though still valid*::
+for clarity only, though still valid*:
+
+::
 
     def get_person_email(sensor: Sensor) -> str | None:
         return sensor.machine? .line? .department.engineer? .email? [0]
         #            ^^^^^^^^  ^^^^^             ^^^^^^^^^  ^^^^^^
 
-The complete function would then be::
+The complete function would then be:
+
+::
 
     def get_person_email(sensor: Sensor) -> str | None:
         return sensor.machine?.line?.department.engineer?.email?[0]
@@ -588,7 +592,9 @@ Grammar changes
 ---------------
 
 A new ``?`` token is added. In addition the ``primary`` grammar rule is
-updated to include ``none_aware_attribute`` and ``none_aware_subscript``::
+updated to include ``none_aware_attribute`` and ``none_aware_subscript``.
+
+.. code-block:: PEG
 
     primary:
         | primary '.' NAME
@@ -751,8 +757,8 @@ defined. Only ``a``, ``.c`` and ``.d`` are expected to possibly be ``None``.
 If ``.b`` all of the sudden is also ``None``, it would still raise an
 ``AttributeError`` since it was unexpected. That would not happen for
 ``maybe``. This behavior is problematic since it can subtly hide real
-issues. As the expression output can already be ``None`` the space of
-potential output didn't change and as such no error would appear.
+issues. As the expression output can already be ``None``, the space of
+potential outputs didn't change and as such no error would appear.
 
 If it is the intend to catch all ``AttributeError`` and ``TypeError``,
 a try-except block can be used instead.
@@ -797,7 +803,9 @@ operators introduced, a unary, postfix operator ``?`` was considered.
 While this might have made teaching the operators a bit easier, just one
 instead of two new operators, it may also be **too general**, in a sense
 that it can be combine with any other operator. For example it is not
-clear what the following expressions would mean::
+clear what the following expressions would mean:
+
+::
 
     >>> x? + 1
     >>> x? -= 1
@@ -819,7 +827,7 @@ values in nested objects with ``optional`` attributes.
 
 If future PEPs want to introduce new operators to access attributes or
 call methods, e.g. a chaining operator, it would be advisable to consider
-if a ``None``-aware variant for it could be useful at that time.
+if a ``None``-aware variant for it could be useful, at that time.
 
 Builtin function for traversal
 ------------------------------
@@ -828,9 +836,10 @@ There are a number of libraries which provide some kind of object
 traversal functions. The most popular likely being ``glom`` [#glom]_.
 Others include ``jmespath`` [#jmespath]_ and ``nonesafe`` [#nonesafe]_.
 The idea is usually to pass an object and the lookup attributes as
-string to a function which handles the evaluation.
+string to a function which handles the evaluation. It was suggested
+to add a ``traverse`` or ``deepget`` function to the stdlib.
 
-.. code-block:: python
+.. code-block:: python-console
 
     # pip install glom
     >>> from glom import glom
@@ -840,8 +849,7 @@ string to a function which handles the evaluation.
     >>> glom(data, "a.b.f.g", default=2)
     2
 
-It was suggested to add a ``traverse`` or ``deepget`` function to the
-stdlib. While these libraries do work and have its use cases, especially
+While these libraries do work and have its use cases, especially
 ``glom`` provides an excellent interface to extract and combine multiple
 data points from deeply nested objects, they do also have some
 disadvantages. Passing the lookup attributes as a string means that often
@@ -859,7 +867,9 @@ either an instance of ``Something`` or an instance of ``Nothing``.
 on ``optional`` attributes.
 
 A Python package called ``pymaybe`` [#pymaybe]_ provides a rough
-approximation. An example could look like this::
+approximation. An example could look like this:
+
+.. code-block:: python-console
 
     # pip install pymaybe
     >>> from pymaybe import maybe
@@ -900,8 +910,8 @@ expressions need to be written and evaluated today.
 
 An advantages of the ``?.`` and ``?[ ]`` operators is that they do not
 change the result much aside from adding ``None`` as a possible return
-of an expression. As such they are a better solution for the use cases
-outlined in the `Motivation`_  section.
+value of an expression. As such they are a better solution for the use
+cases outlined in the `Motivation`_  section.
 
 No-Value Protocol
 -----------------
@@ -918,7 +928,7 @@ replaced with ``x.__has_value__()``.
 There are a few obvious candidates like ``math.nan`` and ``NotImplemented``.
 However, while these could be interpreted as representing no value, the
 interpretation is **domain specific**. For the language itself they *should*
-be treated as values. For example ``math.nan.imag`` is well defined
+still be treated as values. For example ``math.nan.imag`` is well defined
 (it is ``0.0``) and so short-circuiting ``math.nan?.imag`` to return
 ``None`` would be incorrect.
 
@@ -935,8 +945,8 @@ Though possible, the ``->`` operator is already used in Python for
 something completely different. Additionally, a majority of other
 languages which support "``null``-aware" or "optional chaining"
 operators use ``?.``. Some exceptions being Ruby [#ruby]_ with ``&.``
-or PHP [#php]_ with ``?->``. The ``?`` does not have an assigned
-meaning in Python just yet. As such it makes sense to adopt
+or PHP [#php]_ with ``?->``. The ``?`` character does not have an
+assigned meaning in Python just yet. As such it makes sense to adopt
 the most common spelling for the ``None``-aware access operators.
 Especially considering that it also works well with the "normal"
 ``.`` and ``[ ]`` operators.
@@ -950,7 +960,7 @@ forward, it was suggested to defer the operator for later.
 
 Though it is often helpful to reduce the scope to move forward at all,
 the ``?[ ]`` operator is necessary to efficiently get items from
-``optional`` objects. While for dictionary a suitable alternative is to
+``optional`` objects. While for dictionaries a suitable alternative is to
 use ``d?.get(key)``, for general objects developers would have needed
 to defer to ``o?.__getitem__(key)``.
 
@@ -1043,7 +1053,7 @@ Difficult to read
 -----------------
 
 A common objection raised during the discussion was that ``None``-aware
-operators are difficult to read in expressions and add line noise. It
+operators are difficult to read in expressions and add line noise. They
 might be too easy to miss besides "normal" attribute access and subscript
 operators.
 
@@ -1127,7 +1137,7 @@ Some have pointed the `Short-circuiting`_ behavior might be difficult
 to understand and suggested to remove it in favor of a simplified
 proposal.
 
-It is true that using short-circuiting that way is new to Python and
+It is true that using short-circuiting that way is uncommon in Python and
 as such unknown. That closest analogs would be boolean expressions like
 ``a or b``, ``a and b`` which do also short-circuit the expression if
 the first value is truthy or falsy respectively. However, while
@@ -1156,8 +1166,8 @@ Just use ...
 ------------
 
 A common reply towards the proposal was to use an existing language
-concept instead of introducing a syntax. A few alternatives have been
-proposed.
+concept instead of introducing a new syntax. A few alternatives have
+been proposed.
 
 ... a conditional expression
 ****************************
