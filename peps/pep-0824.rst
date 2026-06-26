@@ -202,7 +202,7 @@ AST changes
 A new ``Coalesce`` operator is added to ``boolop`` for use in ``BoolOp``
 nodes.
 
-::
+.. code-block:: ASDL
 
     expr = BoolOp(boolop op, expr* values)
         | ...
@@ -265,7 +265,7 @@ A new ``BoolAssign`` AST node is added. Similar to ``AugAssign``,
 it stores a ``target`` and ``value`` expression as well as
 the boolean operator ``Coalesce``.
 
-::
+.. code-block:: ASDL
 
     stmt = ...
         | AugAssign(expr target, operator op, expr value)
