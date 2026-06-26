@@ -113,7 +113,7 @@ Using the "``None``-coalescing" operator ``??`` instead, helps to keep
 the expression short and predictable while still clearly communicating
 the intent.
 
-::
+.. code-block:: py824
 
     def show_user_age(user: User):
         age = user.get_age() ?? "unknown"
@@ -136,7 +136,7 @@ Using the "``None``-coalesce assignment" operator ``??=`` helps to
 avoid repeating the expression. Especially for more complex once,
 this will make it easier to read and write.
 
-::
+.. code-block:: py824
 
     def set_user_name(user: User):
         user.name ??= "unknown"
@@ -159,7 +159,7 @@ and assign the fallback value inside the function itself.
 
 This could be rewritten as:
 
-::
+.. code-block:: py824
 
     def show_user_name(user: User | None):
         user ??= create_default_user()
@@ -190,7 +190,7 @@ conditional expressions. Parentheses can be added as necessary to
 modify the precedence in individual expressions. A few examples of
 how implicit parentheses would be placed:
 
-::
+.. code-block:: py824
 
     # "" or None ?? 2
     ("" or None) ?? 2
@@ -204,7 +204,7 @@ AST changes
 A new ``Coalesce`` operator is added to ``boolop`` for use in ``BoolOp``
 nodes.
 
-::
+.. code-block:: ASDL
 
     expr = BoolOp(boolop op, expr* values)
         | ...
@@ -249,7 +249,7 @@ AST changes
 A new ``CoalesceAssign`` AST node is added. Similar to ``AugAssign``,
 it stores a ``target`` and ``value`` expression.
 
-::
+.. code-block:: ASDL
 
     stmt = ...
         | AugAssign(expr target, operator op, expr value)
@@ -335,7 +335,7 @@ The following is therefore merely meant as a suggestion.
 ``None``-coalescing operator
 ****************************
 
-::
+.. code-block:: py824
 
     user.get_age() ?? "unknown"
 
@@ -352,7 +352,7 @@ The following is therefore merely meant as a suggestion.
 ``None``-coalescing assignment operator
 ***************************************
 
-::
+.. code-block:: py824
 
     user.name ??= "unknown"
 
@@ -417,7 +417,7 @@ programming languages.
 Lastly, using a (soft-) keyword for the "``None``-coalescing assignment"
 operator poses additional questions and readability concerns.
 
-::
+.. code-block:: py824
 
     a = otherwise b
 

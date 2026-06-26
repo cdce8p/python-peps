@@ -147,7 +147,7 @@ kinds of expressions much simpler while being predictable and doing
 the correct things intuitively. Using these operators, the function
 could instead be written as:
 
-::
+.. code-block:: py823
 
     def get_customer_name(data: Data) -> str | None:
         return data.customer?.user?.name.lower()
@@ -196,7 +196,7 @@ least for dictionaries a useful helper method is ``dict.get(key)``.
 
 Writing it using ``?.`` and ``?[ ]`` would look like this:
 
-::
+.. code-block:: py823
 
     def get_customer_name(data: Data) -> str | None:
         return data.get("customer")?["user"]?.name.lower()
@@ -219,14 +219,14 @@ hide in plain sight. Attribute and function names have been shortened.
     If code relied on this property, the expression cannot necessarily
     be replaced with ``?.`` or ``.[ ]``.
 
-::
+.. code-block:: py823
 
     # In assignments
 
     x = a.b if (a is not None) else None
     x = a?.b
 
-::
+.. code-block:: py823
 
     # In if statements often used as guard clause with early
     # return or raising of an exception
@@ -237,7 +237,7 @@ hide in plain sight. Attribute and function names have been shortened.
     if not (a and a.lower()): ...
     if not a?.lower(): ...
 
-::
+.. code-block:: py823
 
     # Misc expressions
 
@@ -330,7 +330,7 @@ to ``None`` are omitted. It is therefore not necessary to change
 subsequent ``.`` or ``[ ]`` on the right hand side just because a
 ``?.`` or ``?[ ]`` is used prior.
 
-::
+.. code-block:: py823-console
 
     >>> a = None
     >>> print(a?.b.c[0].some_function())
@@ -342,7 +342,7 @@ their ``None``-aware counterparts, and call expressions). As a rule of
 thumb, short-circuiting is broken once an operator other than
 ``.``, ``[ ]``, ``?.``, ``?[ ]`` is reached.
 
-::
+.. code-block:: py823-console
 
     >>> a = None
     >>> print(a?.b.c)
@@ -368,7 +368,7 @@ if ``a is None``. This is conceptually identical to extracting the group
 contents and storing the result in a temporary variable before
 substituting it back into the original expression.
 
-::
+.. code-block:: py823
 
     # (a?.b).c
 
@@ -379,7 +379,7 @@ Common use cases for ``None``-aware access operators in groups are
 boolean or conditional expressions which can provide a fallback value
 in case the first part evaluates to ``None``.
 
-::
+.. code-block:: py823
 
     (a.b?.c or d).e?.func()
 
@@ -398,7 +398,7 @@ Assignments
 ``None``-aware access operators may only be used in a ``Load`` context.
 Assignments are not permitted and will raise a ``SyntaxError``.
 
-::
+.. code-block:: py823-console
 
     >>> a?.b = 1
     File "<python-input-1>", line 1
@@ -418,7 +418,7 @@ since in these the "``None``-aware" expressions are in a ``Load``
 context. Though care must be taken so they can be evaluated properly,
 e.g. with a fallback value.
 
-::
+.. code-block:: py823
 
     class D:
         c = 0
@@ -454,7 +454,7 @@ do not support assignments themselves and thus the context will always be
 expression nodes. It is set to ``1`` if an expression is the topmost
 node in a group, ``0`` otherwise.
 
-::
+.. code-block:: ASDL
 
     expr = ...
         | Attribute(expr value, identifier attr, expr_context ctx)
@@ -501,7 +501,7 @@ their needs, especially code formatters might prefer a style which
 conforms better to their existing preferences. An example of what
 is possible:
 
-::
+.. code-block:: py823
 
     def get_customer_name(data: Data) -> str | None:
         return (
@@ -650,7 +650,7 @@ because it might be too difficult to understand. Developers should
 instead change any subsequent attribute access or subscript to their
 ``None``-aware variants.
 
-::
+.. code-block:: py823
 
     # before
     a.b.optional?.c.d.e
@@ -681,7 +681,7 @@ instead of two new operators, it may also be **too general**, in a sense
 that it can be combine with any other operator. For example it is not
 clear what the following expressions would mean:
 
-::
+.. code-block:: py823-console
 
     >>> x? + 1
     >>> x? -= 1
@@ -692,7 +692,7 @@ clear what the following expressions would mean:
 Even if a default meaning of ``is not None else None`` is assumed, the
 expressions are likely to raise errors at some point.
 
-::
+.. code-block:: py823-console
 
     >>> x? + 1
     >>> (_t1 if ((_t1 := x) is not None) else None) + 1
@@ -871,7 +871,7 @@ the substitution principle. An expression ``(a?.b).c`` should behave
 the same whether or not ``a?.b`` is written inline inside a group or
 defined as a separate variable.
 
-::
+.. code-block:: py823
 
     (a?.b).c
 
@@ -1027,7 +1027,7 @@ for an ``optional`` value evaluates to ``None``, the result will be
 will be skipped. In the example below, if ``a.b`` is ``None``, so will
 be ``a.b?.c``:
 
-::
+.. code-block:: py823
 
     a.b?.c
     ^^^
