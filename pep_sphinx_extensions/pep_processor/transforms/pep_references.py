@@ -12,6 +12,7 @@ class PEPReferenceRoleTitleText(transforms.Transform):
     def apply(self) -> None:
         if not Path(self.document["source"]).match("pep-*"):
             return  # not a PEP file, exit early
+        return
         for node in self.document.findall(nodes.reference):
             if "_title_tuple" not in node:
                 continue
