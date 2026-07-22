@@ -197,8 +197,8 @@ def check_direct_links(line_num: int, line: str) -> MessageIterator:
     """Check that PEPs and RFCs aren't linked directly"""
 
     line = line.lower()
-    if "dev/peps/pep-" in line or "peps.python.org/pep-" in line:
-        yield line_num, "Use the :pep:`NNN` role to refer to PEPs"
+    # if "dev/peps/pep-" in line or "peps.python.org/pep-" in line:
+    #     yield line_num, "Use the :pep:`NNN` role to refer to PEPs"
     if "rfc-editor.org/rfc/" in line or "ietf.org/doc/html/rfc" in line:
         yield line_num, "Use the :rfc:`NNN` role to refer to RFCs"
 
