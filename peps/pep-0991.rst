@@ -1,0 +1,186 @@
+PEP: 991
+Title: Extend match value pattern to support names
+Author: Marc Mueller
+Sponsor: TODO
+Discussions-To: Pending
+Status: Draft
+Type: Standards Track
+Created: 07-Jul-2026
+Python-Version: 3.16
+
+
+Abstract
+========
+
+[A short (~200 word) description of the technical issue being addressed.]
+
+
+Motivation
+==========
+
+When the match statement was proposed in
+`PEP 634 <https://peps.python.org/pep-0634/#value-patterns>`_,
+the decision was made to only support dotted names, i.e. attributes,
+in value patterns because for simple names it is not possible to
+differentiate them from capture patterns. The current workaround for
+this limitation is to combine a name capture pattern with an explicit
+guard clause.
+
+.. code-block:: python
+
+    books: dict[str, str]
+
+    def get_book_titles_for_author(author: str):
+        for book in books:
+            match book:
+                case (
+                    {"title": title, "author": book_author}
+                    if book_author == author
+                ):
+                    yield title
+
+While this works, it is unnecessarily difficult to read and write,
+especially if the match cases get more complex. Furthermore, it has
+some additional limitations:
+
+- As a workaround, it might not taught together with the value pattern.
+  In particular developers new to the match statement might find it
+  difficult to come up with at first.
+
+- The guard clause is separate from the value pattern. For deeply
+  nested patterns, this increases the complexity while reading the
+  match case. It is necessary to keep track of all capture patterns
+  mentally just for it to be used in the guard clause. At which point
+  it is not obvious whether or not the name is also used in the case
+  body as well.
+
+- The name being checked is often closely related or even the same as
+  the variable. In the example above both are ``author``. This makes
+  it necessary to choose a different, suboptimal name for the name
+  capture only to avoid accidentally overwriting the variable.
+
+- Due to the similar names, it is also frequently not possible to
+  know by only reading the guard clause which is the name and which
+  the variable being checked.
+
+- Combining the workaround with ``OR`` patterns is limited because
+  these require that name captures are defined in **all** alternatives.
+  This can make it necessary to duplicate the case body if an
+  alternative does not need the name capture.
+
+- The guard clause is only checked after the pattern itself matches.
+  Especially for complex patterns, this can lead to unnecessary work
+  when the name capture is followed by other patterns. As the capture
+  always succeeds, the other patterns are evaluated even if it is
+  obvious to the outside observer that the guard will fail.
+
+This PEP picks up on a deferred suggestion from
+`PEP 635 <https://peps.python.org/pep-0635/#value-patterns>`_ to use
+a leading dot for value patterns with names. The example above could
+then be written as:
+
+.. code-block:: python
+
+    def get_book_titles_for_author(author: str):
+        for book in books:
+            match book:
+                case {"title": title, "author": .author}:
+                    yield title
+
+.. TODO sentinels + direct name imports
+
+
+Specification
+=============
+
+The value pattern will be extended to support simple names, besides
+attributes, if they are prefixed by a leading dot. The lookup is
+performed following the standard Python name resolution rules.
+
+Grammar changes
+---------------
+
+The ``value_pattern`` rule is extended to support names prefixed by
+a leading dot.
+
+.. code-block:: PEG
+
+    value_pattern:
+        | attr=attr !('.' | '(' | '=')
+        | '.' name=NAME
+
+
+Rationale
+=========
+
+`PEP 635 <https://peps.python.org/pep-0635/#value-patterns>`_
+acknowledged that only supporting dotted names, i.e. attributes,
+for the value pattern would preclude local and global variables
+from acting as constants inside match patterns. While a workaround
+exists, it has its own limitations as shown in the `Motivation`_
+section. Extending the value pattern using the leading dot rule
+will make it easier to read and write match statements.
+
+The leading dot was chosen as it is the most natural extension of
+the existing value pattern rule. Simple names cannot be used since
+they already represent capture patterns. The main point of concern
+was that ``.`` might be too easily missed. So a multitude of
+alternatives have been proposed. See `Alternative syntax proposals`_
+in the rejected ideas section for discussion why those were not chosen
+instead. However, a quick poll [#poll]_ on discuss.python.org
+suggests that a majority prefers the leading dot. The author believes
+that the improvement from not having to write a separate guard
+clause and matching the variable inside the pattern directly,
+is worth it compared to the small readability concern.
+
+
+Backwards Compatibility
+=======================
+
+The change is fully backwards compatible. So far using ``.name``
+raised a ``SyntaxError``.
+
+
+Security Implications
+=====================
+
+There are no new security implications from this proposal.
+
+
+How to Teach This
+=================
+
+[How to teach users, new and experienced, how to apply the PEP to their work.]
+
+
+Reference Implementation
+========================
+
+.. TODO update links
+
+A reference implementation is available at
+https://github.com/cdce8p/cpython/tree/<TODO>.
+A online demo can be tested at https://<TODO>-demo.pages.dev/.
+
+
+Rejected Ideas
+==============
+
+Alternative syntax proposals
+----------------------------
+
+.. TODO
+
+
+Footnotes
+=========
+
+.. [#poll] discuss.python.org: Poll comparing different syntax proposals
+   (https://discuss.python.org/t/pattern-matching-on-constants-that-arent-in-a-namespace-especially-sentinels/107916/61)
+
+
+Copyright
+=========
+
+This document is placed in the public domain or under the
+CC0-1.0-Universal license, whichever is more permissive.
