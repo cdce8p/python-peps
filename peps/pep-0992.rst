@@ -1,0 +1,274 @@
+PEP: 992
+Title: Match expression
+Author: Marc Mueller
+Sponsor: TODO
+Discussions-To: Pending
+Status: Draft
+Type: Standards Track
+Created: 06-Sep-2026
+Python-Version: 3.16
+
+
+Abstract
+========
+
+.. [A short (~200 word) description of the technical issue being addressed.]
+
+This PEP proposes adding a match expression to complement the existing match statement. The expression will evaluate to ``True`` or ``False`` directly and can be used in places which aren't practical or even possible with the existing match statement improving the usefulness of pattern matching in Python, for example:
+
+.. code-block:: pyMatchExpr
+
+    [
+        title for item in BOOKS
+        if (item match Book(title=title, authors=[Author(name="Shakespeare"), *_]))
+    ]
+
+
+
+Motivation
+==========
+
+.. [Clearly explain why the existing language specification is inadequate to address the problem that the PEP solves.]
+
+The match statement added in Python 3.10 provides a great option to
+perform pattern matching in Python which previously often required
+complex conditionals. While it is a versatile feature, being a
+statement limits the usefulness in certain situations where an
+expression is required or preferred.
+
+While loops and comprehensions
+------------------------------
+
+As a statement it is not yet possible to use pattern matching as a
+condition for a while loop or inside comprehensions falling back to
+existing conditional expressions which are often times more verbose.
+
+.. code-block:: python
+
+    def get_book_titles_for_shakespeare(objects: list[Any]):
+        return [
+            title for item in BOOKS
+            if (
+                isinstance(item, Book)
+                and (title := item.title)
+                and len(item.authors) > 0
+                and isinstance((author := item.authors[0]), Author)
+                and author.name == "Shakespeare"
+            )
+        ]
+
+A match expression could simplify this example. Similar to the
+existing match statement, it allows variable captures also
+removing the need for assignment expressions in these cases.
+
+.. code-block:: pyMatchExpr
+
+    def get_book_titles_for_shakespeare():
+        return [
+            title for item in BOOKS
+            if (item match Book(
+                title=title, authors=[Author(name="Shakespeare"), *_]))
+        ]
+
+Checking a singular pattern
+---------------------------
+
+Sometimes it is necessary to check that an object conforms to a
+specific pattern before proceeding.
+
+.. code-block:: python
+
+    if (
+        isinstance(item, Book)
+        and (title := item.title)
+        and len(item.authors) > 0
+        and isinstance((author := item.authors[0]), Author)
+        and author.name == "Shakespeare"
+    ):
+        # do something
+
+While this can be written as a match statement already, it adds an
+additional level of (unnecessary) indentation.
+
+.. code-block:: python
+
+    match item:
+        case Book(title=title, authors=[Author(name="Shakespeare"), *_]):
+            # do something
+
+With a match expression, this could instead be written as:
+
+.. code-block:: pyMatchExpr
+
+    if item match Book(title=title, authors=[Author(name="Shakespeare"), *_]):
+        # do something
+
+Boolean expression
+------------------
+
+Instead of putting the business logic directly below the check, it
+could be desired to save the match result in a temporary variable first.
+
+.. code-block:: python
+
+    is_book_from_shakespeare = False
+    match item:
+        case Book(title=title, authors=[Author(name="Shakespeare"), *_]):
+            is_book_from_shakespeare = True
+
+The match expression would evaluate to ``True`` or ``False`` directly.
+As such it could be used here instead as well.
+
+.. code-block:: pyMatchExpr
+
+    is_book_from_shakespeare = item match Book(
+        title=title, authors=[Author(name="Shakespeare"), *_]
+    )
+
+
+Specification
+=============
+
+.. [Describe the syntax and semantics of any new language feature.]
+
+Match expression
+----------------
+
+An expression form for the existing match statement is added. It
+consists of a ``subject`` followed by the soft-keyword ``match``
+and a singular ``pattern``. A guard clause is not supported. The
+expression evaluates to ``True`` if the pattern matches the subject,
+``False`` otherwise. Similar to the match statement, any variable
+captures are assigned as normal if the pattern matches.
+
+.. code-block:: pyMatchExpr
+
+    <subject> match <pattern>
+
+If it would be written as a statement, it would be roughly equivalent
+to this:
+
+.. code-block:: python
+
+    match <subject>:
+        case <pattern>:
+            result = True
+        case _:
+            result = False
+
+Precedence
+**********
+
+The precedence of match expressions will be lower than conditional
+but higher than assignment expressions.
+
+Combination with other expressions
+**********************************
+
+When combining the match expression with other expression, it is
+necessary to wrap the match expression with parenthesis.
+
+.. code-block:: pyMatchExpr
+
+    (<subject> match <pattern>) and (some_other_expression)
+
+AST changes
+-----------
+
+A new AST node ``MatchExpr`` is added.
+
+.. code-block:: ASDL
+
+    expr = ...
+        | IfExp(expr test, expr body, expr orelse)
+        | MatchExp(expr subject, pattern pattern)
+
+Grammar changes
+---------------
+
+The ``expression`` grammar rule is updated to include
+``match_expression``. The existing soft-keyword ``match`` is reused.
+
+.. code-block:: PEG
+
+    expression:
+        | match_expression
+        | if_expression
+        | disjunction
+        | lambdef
+
+    match_expression:
+        | disjunction "match" ~ patterns
+
+    if_expression:
+        | disjunction 'if' disjunction 'else' expression
+
+Rationale
+=========
+
+.. [Describe why particular design decisions were made.]
+.. Design decisions
+
+A one-of syntax variant for the match statement was included as
+deferred idea in the first PEP for pattern matching :pep:`622`.
+At the time it was noted that a on-off variant would be could be
+useful fairly frequently.
+
+Modeled after if-expressions
+=> nobody questions it's usefulness even though it just saves one indent
+
+- only accepts disjuction as subject
+- leave ot additional guard clause
+- why boolean return -> either matches or it doesn't
+
+
+Backwards Compatibility
+=======================
+
+Existing programs will continue to run as is. So far using a match
+expression raised a ``SyntaxError``.
+
+
+Security Implications
+=====================
+
+There are no new security implications from this proposal.
+
+
+How to Teach This
+=================
+
+.. [How to teach users, new and experienced, how to apply the PEP to their work.]
+
+
+Reference Implementation
+========================
+
+.. [Link to any existing implementation and details about its state, e.g. proof-of-concept.]
+
+
+Rejected Ideas
+==============
+
+.. [Why certain ideas that were brought while discussing this PEP were not ultimately pursued.]
+
+- Raising a ValueError
+
+
+Open Issues
+===========
+
+.. [Any points that are still being decided/discussed.]
+
+
+Footnotes
+=========
+
+.. [A collection of footnotes cited in the PEP, and a place to list non-inline hyperlink targets.]
+
+
+Copyright
+=========
+
+This document is placed in the public domain or under the
+CC0-1.0-Universal license, whichever is more permissive.
